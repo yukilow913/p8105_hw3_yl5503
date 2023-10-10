@@ -1,0 +1,212 @@
+---
+title: "P8105 HW 3"
+author: Yuki Low (yl5503)
+date: 09/15/2023
+output: github_document
+---
+
+Loading necessary packages
+```{r, message = FALSE}
+library(p8105.datasets)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+```
+
+**Problem 1**
+
+Loading the Instacart dataset 
+```{r}
+data("instacart")
+instacart
+```
+
+The Instacart dataset contains information about online grocery orders made through the Instacart platform. There are $`r nrow(instacart)`$ observations in the Instacart dataset. It includes data on items ordered, the aisle they belong to, order times, and more. The dataset is structured as a data frame and consists of several columns, including `order_id`, `product_id`, `aisle_id`, `aisle`, `product_name`, `order_hour_of_day`, `order_dow`, and `order_count`.
+
+1. Using the unique function to gather all of the unique aisle names and the length function to count how many unique aisle names there are in total
+2.  `aisle_df` is a dataset that allows us to see how many orders were ordered from each unique aisle
+3.  `aisle_df` is arranged in descending order 
+
+```{r}
+num_aisles <- length(unique(instacart$aisle))
+aisle_df <- instacart %>% 
+  group_by(aisle) %>% 
+  summarise(count = n()) %>% 
+  arrange(desc(count))
+head(aisle_df)
+```
+
+There are $`r num_aisles`$ aisles. The aisles that more items are ordered from are fresh vegetables ($150609$ orders) and fresh fruits ($150473$ orders). 
+
+1. `aisle_10000` is a subset of the original `aisle_df` and shows us only the aisles where there were more than $10000$ orders
+
+```{r}
+aisle_10000 <- aisle_df %>% 
+  filter(count > 10000)
+
+ggplot(aisle_10000, aes(x = reorder(aisle, count), y = count)) +
+  geom_bar(stat = "identity", fill = "skyblue") + 
+  labs(
+    title = "Barplot Showing Number of Orders from Each Aisle",
+    x = "Aisle Names",
+    y = "Count"
+  ) +
+  coord_flip()
+```
+
+1. `baking_ingredients` is a subset of the `instacart` df and looks at only the orders from the aisle named "baking ingredients" 
+2. The resulting  `baking_ingredients` dataframe shows us a product name and the number of times that it has been ordered 
+3.  `baking_ingredients` is ordered in descending order 
+
+```{r}
+baking_ingredients <- subset(instacart, aisle == "baking ingredients")
+baking_ingredients <- baking_ingredients %>% 
+  group_by(product_name) %>% 
+  summarise(count = n()) %>% 
+  arrange(desc(count))
+head(baking_ingredients)
+```
+
+1. `dog_food_care` is a subset of the `instacart` df and looks at only the orders from the aisle named "dog food care" 
+2. The resulting  `dog_food_care` dataframe shows us a product name and the number of times that it has been ordered 
+3.  `dog_food_care` is ordered in descending order 
+
+```{r}
+dog_food_care <- subset(instacart, aisle == "dog food care")
+dog_food_care <- dog_food_care %>% 
+  group_by(product_name) %>% 
+  summarise(count = n()) %>% 
+  arrange(desc(count))
+head(dog_food_care)
+```
+
+1. `packages_veg_fruits` is a subset of the `instacart` df and looks at only the orders from the aisle named "packaged vegetables fruits" 
+2. The resulting  `packages_veg_fruits` dataframe shows us a product name and the number of times that it has been ordered 
+3.  `packages_veg_fruits` is ordered in descending order 
+
+```{r}
+packages_veg_fruits <- subset(instacart, aisle == "packaged vegetables fruits")
+packages_veg_fruits <- packages_veg_fruits %>% 
+  group_by(product_name) %>% 
+  summarise(count = n()) %>% 
+  arrange(desc(count))
+head(packages_veg_fruits)
+```
+
+1. A separate dataframe was created for each of three aisles. Each dataframe includes the top three items that were ordered 
+2. A column noting which aisle the item belonged to was added to each dataframe 
+3. The function `rbind` was used to combine the three dataframes into one final df 
+4. The function `kable` in the package `knitr` was used to format the table nicely
+5. The resulting df called `top_3_df` contains the top three items that were ordered and which aisle the item was ordered from 
+
+```{r}
+top_baking_ingredients <- head(baking_ingredients[order(baking_ingredients$count, decreasing = TRUE), ], 3)
+top_dog_food_care <- head(dog_food_care[order(dog_food_care$count, decreasing = TRUE), ], 3)
+top_packaged_vegetables_fruits <- head(packages_veg_fruits[order(packages_veg_fruits$count, decreasing = TRUE), ], 3)
+
+top_baking_ingredients <- top_baking_ingredients %>% 
+  mutate(aisle = "baking ingredients")
+
+top_dog_food_care <- top_dog_food_care %>% 
+  mutate(aisle = "dog food care")
+
+top_packaged_vegetables_fruits <- top_packaged_vegetables_fruits %>% 
+  mutate(aisle = "packaged vegetables fruits")
+
+top_3_df <- rbind(top_baking_ingredients,top_dog_food_care,top_packaged_vegetables_fruits)
+
+knitr::kable(top_3_df)
+```
+
+1. `filtered_orders` is a subset of `instacart` in which we only want to look at the information relating to pink lady apples and coffee ice cream. 
+2. `mean_hour_table` shows us the mean hour of the day that the product was ordered on each day of the week 
+3. The function `pivot_wider` and `colnames` was used to widen the dataframe so that the column names were each day of the week and each of the two rows correspond to coffee ice cream and pink lady apple respectively 
+
+```{r, warning = FALSE}
+filtered_orders <- instacart %>%
+  filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream"))
+
+mean_hour_table <- filtered_orders %>%
+  group_by(product_name, order_dow) %>%
+  summarize(mean_hour = mean(order_hour_of_day, na.rm = TRUE))
+
+mean_hour_table <- mean_hour_table %>%
+  pivot_wider(names_from = order_dow, values_from = mean_hour) %>%
+  arrange(product_name)
+
+colnames(mean_hour_table) <- c("Product", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
+
+knitr::kable(mean_hour_table)
+```
+**Problem 2**
+
+*Cleaning the data* 
+
+1. Load the dataset 
+2. Clean the dataset column names 
+3. We want to subset the data to only include the `topic` of "Overall Health" 
+4. We want only `response` values from Poor-Excellent 
+5. Change the response variable to an ordered variable from Poor to Excellent
+
+```{r}
+library(p8105.datasets)
+data("brfss_smart2010")
+brfss_smart2010<- brfss_smart2010 %>% 
+  janitor::clean_names() %>% 
+  subset(topic == "Overall Health") %>% 
+  subset(response %in% c("Poor", "Fair", "Good", "Very Good", "Excellent"))
+
+brfss_smart2010$response <- factor(brfss_smart2010$response, levels = c("Poor", "Fair", "Good", "Very Good", "Excellent"), ordered = TRUE)
+
+head(brfss_smart2010)
+```
+
+```{r}
+state_location_counts_2002 <- brfss_smart2010 %>% 
+  filter(year == 2002) %>% 
+  group_by(locationabbr) %>% 
+  summarise(number_of_cities = n_distinct(locationdesc)) %>% 
+  filter(number_of_cities >= 7)
+state_location_counts_2002
+
+state_location_counts_2010 <- brfss_smart2010 %>% 
+  filter(year == 2010) %>% 
+  group_by(locationabbr) %>% 
+  summarise(number_of_cities = n_distinct(locationdesc)) %>% 
+  filter(number_of_cities >= 7)
+state_location_counts_2010
+```
+
+In 2002, CT, FL, MA, NC, NJ and PA were observed 7 or more locations. In 2010, CA, CO, FL, MA, MD, NC, NE, NJ, NY, OH, PA, SC, TX, WA were observed at 7 or more locations. 
+
+```{r}
+excellent_df <- brfss_smart2010 %>% 
+  filter(response == "Excellent") %>% 
+  group_by(year, locationdesc) %>%
+  summarize(avg_data_value = mean(data_value, na.rm = TRUE))
+
+excellent_df
+
+ggplot(excellent_df, aes(x = year, y = avg_data_value, group = locationdesc)) +
+  geom_point() + 
+  geom_line() +
+  labs(
+    title = "Average Excellent Responses Over Time by State",
+    x = "Year",
+    y = "Average Data Value"
+  )
+
+```
+
+```{r}
+ny_data_2006_2010 <- brfss_smart2010 %>%
+  filter(locationabbr == "NY" & (year == "2006")) %>%
+  group_by(locationdesc) %>% 
+  group_by(response) 
+
+ny_data_2006_2010
+```
+
+
+
+
