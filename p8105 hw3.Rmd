@@ -200,9 +200,10 @@ ggplot(excellent_df, aes(x = year, y = avg_data_value, group = locationdesc)) +
 
 ```{r}
 ny_data_2006_2010 <- brfss_smart2010 %>%
-  filter(locationabbr == "NY" & (year == "2006")) %>%
-  group_by(locationdesc) %>% 
-  group_by(response) 
+  filter(locationabbr == "NY" & (year == "2006" | year == "2010")) %>%
+  ggplot(aes(x = data_value)) + 
+  geom_histogram(binwidth = 3) + 
+  facet_grid(year ~response)
 
 ny_data_2006_2010
 ```
