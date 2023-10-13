@@ -12,6 +12,7 @@ library(dplyr)
 library(ggplot2)
 library(tidyr)
 library(readr)
+library(stringr)
 ```
 
 **Problem 1**
@@ -19,7 +20,7 @@ library(readr)
 Loading the Instacart dataset 
 ```{r}
 data("instacart")
-instacart
+head(instacart)
 ```
 
 The Instacart dataset contains information about online grocery orders made through the Instacart platform. There are $`r nrow(instacart)`$ observations in the Instacart dataset. It includes data on items ordered, the aisle they belong to, order times, and more. The dataset is structured as a data frame and consists of several columns, including `order_id`, `product_id`, `aisle_id`, `aisle`, `product_name`, `order_hour_of_day`, `order_dow`, and `order_count`.
@@ -119,6 +120,7 @@ top_3_df <- rbind(top_baking_ingredients,top_dog_food_care,top_packaged_vegetabl
 knitr::kable(top_3_df)
 ```
 
+
 1. `filtered_orders` is a subset of `instacart` in which we only want to look at the information relating to pink lady apples and coffee ice cream. 
 2. `mean_hour_table` shows us the mean hour of the day that the product was ordered on each day of the week 
 3. The function `pivot_wider` and `colnames` was used to widen the dataframe so that the column names were each day of the week and each of the two rows correspond to coffee ice cream and pink lady apple respectively 
@@ -139,7 +141,8 @@ colnames(mean_hour_table) <- c("Product", "Sunday", "Monday", "Tuesday", "Wednes
 
 knitr::kable(mean_hour_table)
 ```
-**Problem 2**
+
+2. 
 
 *Cleaning the data* 
 
@@ -169,25 +172,32 @@ state_location_counts_2002 <- brfss_smart2010 %>%
   summarise(number_of_cities = n_distinct(locationdesc)) %>% 
   filter(number_of_cities >= 7)
 state_location_counts_2002
+```
 
+In 2002, CT, FL, MA, NC, NJ and PA were observed 7 or more locations.
+
+```{r}
 state_location_counts_2010 <- brfss_smart2010 %>% 
   filter(year == 2010) %>% 
   group_by(locationabbr) %>% 
   summarise(number_of_cities = n_distinct(locationdesc)) %>% 
   filter(number_of_cities >= 7)
-state_location_counts_2010
+head(state_location_counts_2010)
 ```
+In 2010, CA, CO, FL, MA, MD, NC, NE, NJ, NY, OH, PA, SC, TX, WA were observed at 7 or more locations. 
 
-In 2002, CT, FL, MA, NC, NJ and PA were observed 7 or more locations. In 2010, CA, CO, FL, MA, MD, NC, NE, NJ, NY, OH, PA, SC, TX, WA were observed at 7 or more locations. 
 
+`excellent_df` is a dataset that is limited to only excellent responses and contains, the year, the state and the variable named `avg_data_value` whihc averages the `data_value` across locations within a state. 
 ```{r}
 excellent_df <- brfss_smart2010 %>% 
   filter(response == "Excellent") %>% 
   group_by(year, locationdesc) %>%
   summarize(avg_data_value = mean(data_value, na.rm = TRUE))
 
-excellent_df
+head(excellent_df)
+```
 
+```{r}
 ggplot(excellent_df, aes(x = year, y = avg_data_value, group = locationdesc)) +
   geom_point() + 
   geom_line() +
@@ -198,6 +208,8 @@ ggplot(excellent_df, aes(x = year, y = avg_data_value, group = locationdesc)) +
   )
 
 ```
+
+`ny_data_2006_2010` is a dataset that is a subset of `brfss_smart_2010` that filters out only New York and years 2006 or 2010 data_values. The following is a two panel plot showing, for the years 2006 and 2010, the distribution of the data_value for responses ("Poor" to "Excellent") among locations in New York State. 
 
 ```{r}
 ny_data_2006_2010 <- brfss_smart2010 %>%
@@ -221,7 +233,7 @@ covar_df =
   read_csv("./nhanes_covar.csv") %>%
   janitor::clean_names()
 
-covar_df
+head(covar_df)
 ```
 Changing column names and deleting first 4 rows, deleting rows with NA's 
 ```{r}
@@ -230,7 +242,7 @@ covar_df <- covar_df[-c(1:4), ]
 covar_df<- na.omit(covar_df)
 ```
 
-Changing sex and education to factor variables, age and BMI to integer variables 
+Changing sex and education to factor variables, age, BMI and seqn to integer variables 
 ```{r}
 covar_df <- 
   covar_df %>% 
@@ -242,17 +254,36 @@ covar_df <-
   mutate(seqn = as.double(seqn))
 ```
 
-
+`summary_table` shows the number of men and women in each education category. 
 ```{r}
 summary_table <- covar_df %>%
   group_by(education, sex) %>%
   summarize(count = n()) %>%
   pivot_wider(names_from = sex, values_from = count, names_prefix = "count_")
 
-colnames(summary_table)[2:3] <- c("Male", "Female")
+colnames(summary_table)[2:3] <- c("male", "female")
 
-summary_table
+knitr::kable(summary_table)
+
+age_distribution_plot <- covar_df %>%
+  ggplot(aes(x = age, fill = sex)) +
+  geom_histogram(position = "identity", alpha = 0.7, bins = 10) +
+  facet_grid(sex ~ education) +
+  labs(
+    title = "Age Distributions by Education and Sex",
+    x = "Age",
+    y = "Frequency"
+  ) +
+  theme_minimal()
+
+print(age_distribution_plot)
 ```
+
+From the table, we can see that in our dataset, there are slightly more females than males who have an education level of less than HS, more males than females who have an education level of HS equivalent, and slightly more females than males with an education of more than HS. 
+
+The distribution of age is approximately left skewed for men with education level less than high school. The distribution of age is bimodal for men with education of HS equivalent. The distributuion of age is approximately uniform for men with education of more than HS. 
+
+The distribution of age is approximately uniform for women with education level less than high school. The distribution of age is left skewed for women with education of HS equivalent. The distribution of age is right skewed for women with education of more than HS. 
 
 ```{r}
 ggplot(covar_df, aes(x = education, y = age, fill = sex)) +
@@ -261,16 +292,19 @@ ggplot(covar_df, aes(x = education, y = age, fill = sex)) +
   theme_minimal()
 ```
 
+We can see from the side-by-side box plots: the median age of men and women who had an education of less than HS is around 60, the median age of men is lower than the median age of women for education of HS equivalent, and the median age of men and women who had an education of more than HS is around 40.  
 
+Creating a total_count variable in the dataframe that accumulates the min_x values. 
 ```{r}
 accel_df <- accel_df %>% 
   mutate(total_count = rowSums(select(.,seqn)))
-accel_df
+head(accel_df)
 ```
 
+Combining the two dataframs by seqn ID
 ```{r}
 combined_df <- covar_df %>% inner_join(accel_df, by = "seqn")
-combined_df
+head(combined_df)
 ```
 
 ```{r}
@@ -285,6 +319,24 @@ ggplot(combined_df, aes(x = age, y = total_count, color = sex)) +
   ) +
   theme_minimal()
 ```
+
+Overall: the total activity of male and female with education level less than HS decreases as age increases, the total activity of male and female with education level of HS equivalent increases as age increases, the total activity of male with education level of more than high school stays about the same as age increases, the total activity of women with education level of more than high school increases as age increases. 
+
+```{r}
+combined_df <- 
+  combined_df %>% 
+  pivot_longer(cols = starts_with("min"), names_to = "min", values_to = "activity") %>% 
+  mutate(min = str_remove(min, "min")) %>% 
+  mutate(min = as.integer(min)) %>% 
+  ggplot(aes(x = min, y = activity, color = sex)) +
+  geom_point(alpha = .1) +
+  geom_smooth(se = F) +
+  facet_wrap(~education)
+
+combined_df
+```
+
+Overall: for all three education levels, as time passes, the activity increases but slowly starts to decrease again. 
 
 
 
