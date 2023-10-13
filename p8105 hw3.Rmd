@@ -11,6 +11,7 @@ library(p8105.datasets)
 library(dplyr)
 library(ggplot2)
 library(tidyr)
+library(readr)
 ```
 
 **Problem 1**
@@ -209,8 +210,85 @@ ny_data_2006_2010
 ```
 
 3. 
+
+Loading the necessary CSV files into R 
 ```{r}
+accel_df = 
+  read_csv("./nhanes_accel.csv") %>%
+  janitor::clean_names()
+
+covar_df = 
+  read_csv("./nhanes_covar.csv") %>%
+  janitor::clean_names()
+
+covar_df
 ```
+Changing column names and deleting first 4 rows, deleting rows with NA's 
+```{r}
+colnames(covar_df) <- covar_df[4, ]
+covar_df <- covar_df[-c(1:4), ]
+covar_df<- na.omit(covar_df)
+```
+
+Changing sex and education to factor variables, age and BMI to integer variables 
+```{r}
+covar_df <- 
+  covar_df %>% 
+  mutate(sex = as.factor(sex)) %>%
+  mutate(education = as.factor(education)) %>% 
+  mutate(age = as.numeric(age)) %>% 
+  mutate(BMI = as.numeric(BMI)) %>% 
+  rename(seqn = SEQN) %>% 
+  mutate(seqn = as.double(seqn))
+```
+
+
+```{r}
+summary_table <- covar_df %>%
+  group_by(education, sex) %>%
+  summarize(count = n()) %>%
+  pivot_wider(names_from = sex, values_from = count, names_prefix = "count_")
+
+colnames(summary_table)[2:3] <- c("Male", "Female")
+
+summary_table
+```
+
+```{r}
+ggplot(covar_df, aes(x = education, y = age, fill = sex)) +
+  geom_boxplot() +
+  labs(title = "Age Distribution by Education and Gender", x = "Education", y = "Age") +
+  theme_minimal()
+```
+
+
+```{r}
+accel_df <- accel_df %>% 
+  mutate(total_count = rowSums(select(.,seqn)))
+accel_df
+```
+
+```{r}
+combined_df <- covar_df %>% inner_join(accel_df, by = "seqn")
+combined_df
+```
+
+```{r}
+ggplot(combined_df, aes(x = age, y = total_count, color = sex)) +
+  geom_point() +
+  facet_grid(. ~ education) +
+  geom_smooth(method = "loess", se = FALSE) +  # Add a loess curve without a confidence interval
+  labs(
+    title = "Total Activity vs. Age by Education and Gender",
+    x = "Age",
+    y = "Total Activity"
+  ) +
+  theme_minimal()
+```
+
+
+
+
 
 
 
